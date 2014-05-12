@@ -10,6 +10,7 @@ import hmac
 import logging
 import StringIO
 from urllib import urlencode
+from urlparse import urlparse, parse_qs
 
 import pytz
 
@@ -230,6 +231,27 @@ class HostedPaymentResult(object):
                 'merchantReturnData']
 
         return _get_signature(keys, params, secret)
+
+    @classmethod
+    def mock(cls, backend, url):
+        """
+        Return the payment result url for a successful payment. Use this for
+        unit tests.
+        """
+        url = urlparse(url)
+        query = parse_qs(url.query)
+        params = {
+            'authResult': 'AUTHORISED',
+            'pspReference': 'mockreference',
+            'merchantReference': query['merchantReference'][0],
+            'skinCode': query['skinCode'][0],
+            'paymentMethod': 'visa',
+            'shopperLocale': query.get('shopperLocale', '')[0],
+            'merchantReturnData': query.get('merchantReturnData', '')[0]
+        }
+        skin = backend.get_skin_by_code(query['skinCode'][0])
+        params['merchantSig'] = cls._get_result_signature(params, skin.key)
+        return "{}?{}".format(query['resURL'][0], urlencode(params))
 
 
 class HostedPaymentNotification(object):
