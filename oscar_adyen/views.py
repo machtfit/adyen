@@ -32,6 +32,20 @@ Order = get_model('order', 'Order')
 PaymentEventType = get_model('order', 'PaymentEventType')
 
 
+PAYMENT_METHOD_NAMES = {
+    'amex': 'American Express',
+    'bankTransfer_DE': 'Überweisung',
+    'bankTransfer_IBAN': 'SEPA-Überweisung',
+    'directEbanking': 'Sofortüberweisung',
+    'elv': 'Lastschrift',
+    'giropay': 'GiroPay',
+    'maestro': 'Maestro',
+    'mc': 'MasterCard',
+    'sepadirectdebit': 'SEPA-Lastschrift',
+    'visa': 'VISA'
+}
+
+
 class PaymentDetailsView(django_views.PaymentRequestMixin,
                          orig.PaymentDetailsView):
     def prepare_payment_request(self, payment):
@@ -74,8 +88,10 @@ class PaymentResultView(OrderPlacementMixin, django_views.PaymentResultView):
 
             # Record payment source and event
             source_type, _created = SourceType.objects.get_or_create(
-                name='Adyen - {}'
-                .format(payment_result.payment_method))
+                code='adyen-{}'.format(payment_result.payment_method),
+                defaults={'name': PAYMENT_METHOD_NAMES.get(
+                    payment_result.payment_method,
+                    payment_result.payment_method)})
             amount = Decimal(payment.payment_amount)/100
 
             # TODO: reflect the various payment statuses (see Merchant Manual,
