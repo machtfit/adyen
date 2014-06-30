@@ -182,7 +182,7 @@ urlpatterns = [
 import django_adyen.views
 
 
-class PaymentView(View):
+class PaymentView(django_adyen.views.PaymentRequestMixin, View):
     def post(self, request, *args, **kwargs):
         # call this method somewhere
         # It returns a HttpResponseRedirect to Adyen
