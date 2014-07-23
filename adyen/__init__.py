@@ -75,6 +75,7 @@ class HostedPayment(object):
         self.country_code = None
         self.shopper_email = None
         self.shopper_reference = None
+        self.recurring_contract = None
         self.allowed_methods = ''
         self.blocked_methods = ''
         self.offset = None
@@ -113,6 +114,7 @@ class HostedPayment(object):
             'countryCode': self.country_code,
             'shopperEmail': self.shopper_email,
             'shopperReference': self.shopper_reference,
+            'recurringContract': self.recurring_contract,
             'allowedMethods': self.allowed_methods,
             'blockedMethods': self.blocked_methods,
             'offset': self.offset,
