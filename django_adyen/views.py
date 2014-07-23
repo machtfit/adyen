@@ -45,7 +45,7 @@ class PaymentResultView(View):
         return self.handle_payment_result(payment_result)
 
     def handle_payment_result(self, payment_result):
-        return HttpResponse('Payment OK.')
+        return HttpResponse('Payment {}.'.format(payment_result.auth_result))
 
 
 def basic_auth(f):
