@@ -6,12 +6,10 @@ from django.conf.urls import url
 
 from django_adyen import urlpatterns
 
-from . import views
-
 urlpatterns = [
-    url(r'^payment-done/$', views.PaymentResultView.as_view(),
+    url(r'^payment-done/$', 'oscar_adyen.views.payment_result',
         name='payment-result'),
-    url(r'^notify/$', views.NotificationView.as_view(),
+    url(r'^notify/$', 'oscar_adyen.views.notification',
         name='payment-notification')
 ] + urlpatterns
 
