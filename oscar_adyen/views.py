@@ -8,28 +8,24 @@ import logging
 import six
 
 from django.contrib import messages
-from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse
 from django.utils.translation import ugettext as _
 
 from django_adyen.models import Payment
 import django_adyen.views as django_views
 
-from oscar.apps.checkout.mixins import OrderPlacementMixin
 from oscar.apps.checkout import signals
-import oscar.apps.checkout.views as orig
-from oscar.apps.payment.exceptions import RedirectRequired
 from oscar.core.loading import get_model, get_class
 
 log = logging.getLogger(__name__)
 
 Source = get_model('payment', 'Source')
 SourceType = get_model('payment', 'SourceType')
-PaymentError = get_class('payment.exceptions', 'PaymentError')
 UnableToPlaceOrder = get_class('order.exceptions', 'UnableToPlaceOrder')
 EventHandler = get_class('order.processing', 'EventHandler')
 Order = get_model('order', 'Order')
 PaymentEventType = get_model('order', 'PaymentEventType')
+CheckoutFlow = get_class('checkout.flow', 'CheckoutFlow')
 
 
 PAYMENT_METHOD_NAMES = {
@@ -46,39 +42,22 @@ PAYMENT_METHOD_NAMES = {
 }
 
 
-class PaymentDetailsView(django_views.PaymentRequestMixin,
-                         orig.PaymentDetailsView):
-    def prepare_payment_request(self, payment):
-        super(PaymentDetailsView, self).prepare_payment_request(payment)
-        payment.res_url = self.request.build_absolute_uri(
-            reverse('oscar-adyen:payment-result'))
-        # backend.get_payment_params()
-
-    def handle_payment(self, order_number, total, **kwargs):
-        ref = "{order_number}-{{payment_id}}".format(order_number=order_number)
-        # TODO: use correct subunit fraction depending on the currency
-        # http://en.wikipedia.org/wiki/List_of_circulating_currencies
-        response = self.initiate_payment(ref, int(total.incl_tax * 100),
-                                         total.currency)
-        raise RedirectRequired(response.url)
-
-
-class PaymentResultView(OrderPlacementMixin, django_views.PaymentResultView):
+class PaymentResultView(CheckoutFlow, django_views.PaymentResultView):
     def handle_payment_result(self, payment_result):
         if payment_result.auth_result == 'ERROR':
             self.restore_frozen_basket()
             messages.warning(self.request, _('Payment failed'))
-            return HttpResponseRedirect(reverse('checkout:preview'))
+            return self.checkout_failed()
 
         if payment_result.auth_result == 'CANCELLED':
             self.restore_frozen_basket()
             messages.warning(self.request, _('Payment cancelled'))
-            return HttpResponseRedirect(reverse('checkout:preview'))
+            return self.checkout_failed()
 
         if payment_result.auth_result == 'REFUSED':
             self.restore_frozen_basket()
             messages.error(self.request, _('Payment refused'))
-            return HttpResponseRedirect(reverse('checkout:preview'))
+            return self.checkout_failed()
 
         if payment_result.auth_result in ['AUTHORISED', 'PENDING']:
             self.restore_frozen_basket()
@@ -121,7 +100,8 @@ class PaymentResultView(OrderPlacementMixin, django_views.PaymentResultView):
                 del kwargs['payment_kwargs']
                 order_kwargs = kwargs.pop('order_kwargs')
                 kwargs.update(order_kwargs)
-                return self.handle_order_placement(order_number, **kwargs)
+                self.handle_order_placement(order_number, **kwargs)
+                return self.checkout_successful()
             except UnableToPlaceOrder as e:
                 # It's possible that something will go wrong while trying to
                 # actually place an order.  Not a good situation to be in as a
@@ -131,9 +111,11 @@ class PaymentResultView(OrderPlacementMixin, django_views.PaymentResultView):
                 log.error("Order #%s: unable to place order - %s",
                           order_number, msg, exc_info=True)
                 self.restore_frozen_basket()
-                return self.render_preview(self.request, error=msg)
+                messages.error(self.request, msg)
+                return self.checkout_failed()
 
-            return HttpResponseRedirect(reverse('checkout:thank-you'))
+
+payment_result = PaymentResultView.as_view()
 
 
 class NotificationView(django_views.NotificationView):
@@ -159,3 +141,6 @@ class NotificationView(django_views.NotificationView):
             amount=Decimal(notification.value) / 100,
             reference=notification.psp_reference)
         return super(NotificationView, self).handle_notification(notification)
+
+
+notification = NotificationView.as_view()
