@@ -93,6 +93,10 @@ class HostedPayment(object):
         return self._skin.code
 
     @property
+    def is_live(self):
+        return self._skin.is_live
+
+    @property
     def merchant_account(self):
         return self._skin.merchant_account
 

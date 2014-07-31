@@ -10,6 +10,7 @@ from django.db import models
 class PaymentManager(models.Manager):
     def persist(self, hosted_payment):
         payment = self.create(
+            live=hosted_payment.is_live,
             payment_amount=hosted_payment.payment_amount,
             currency_code=hosted_payment.currency_code,
             ship_before_date=hosted_payment.ship_before_date,
@@ -58,6 +59,7 @@ class Payment(models.Model):
     documentation or other sources, max_length is specified.
     """
     created_datetime = models.DateTimeField(auto_now_add=True)
+    live = models.BooleanField()
     merchant_reference = models.CharField(max_length=80)
     payment_amount = models.IntegerField()
     currency_code = models.CharField(max_length=3)
@@ -95,7 +97,16 @@ class Payment(models.Model):
 
 class ResultManager(models.Manager):
     def persist(self, hosted_payment_result):
+        try:
+            payment = Payment.objects.get(
+                merchant_reference=hosted_payment_result.merchant_reference)
+        except Payment.DoesNotExist:
+            is_live = None
+        else:
+            is_live = payment.live
+
         return self.create(
+            live=is_live,
             auth_result=hosted_payment_result.auth_result,
             psp_reference=hosted_payment_result.psp_reference,
             merchant_reference=hosted_payment_result.merchant_reference,
@@ -111,6 +122,12 @@ class Result(models.Model):
     from Adyen.
     """
     created_datetime = models.DateTimeField(auto_now_add=True)
+
+    # We can't tell by the payment result whether it is from the live or test
+    # system. We try to find a matching payment to determine live or test.
+    # However if we can't find the payment, instead of not persisting the
+    # result, we store None for this field.
+    live = models.NullBooleanField()
 
     auth_result = models.CharField(max_length=10)
     # no max length info found
