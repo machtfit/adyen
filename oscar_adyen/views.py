@@ -137,7 +137,7 @@ class NotificationView(django_views.NotificationView):
 
         EventHandler().create_payment_event(
             order=order,
-            event_type=notification.event_code,
+            event_type=event_type,
             amount=Decimal(notification.value) / 100,
             reference=notification.psp_reference)
         return super(NotificationView, self).handle_notification(notification)
