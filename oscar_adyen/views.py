@@ -81,7 +81,8 @@ class PaymentResultView(CheckoutFlow, django_views.PaymentResultView):
                             reference=payment_result.psp_reference)
             self.add_payment_source(source)
 
-            self.add_payment_event(payment_result.auth_result, amount,
+            event_type_name = "Adyen - {}".format(payment_result.auth_result)
+            self.add_payment_event(event_type_name, amount,
                                    reference=payment_result.psp_reference)
 
             messages.success(self.request, _('Payment accepted'))
