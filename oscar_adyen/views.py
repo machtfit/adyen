@@ -8,7 +8,6 @@ import logging
 import six
 
 from django.contrib import messages
-from django.http import HttpResponse
 from django.utils.translation import ugettext as _
 
 from django_adyen.models import Payment
@@ -130,16 +129,15 @@ class NotificationView(django_views.NotificationView):
             # task runner or something similar.
             log.error("Couldn't find order for notification #{id} {s}"
                       .format(id=notification.pk, s=notification))
-            return HttpResponse()
+        else:
+            event_type, __ = PaymentEventType.objects.get_or_create(
+                name="Adyen - {}".format(notification.event_code))
 
-        event_type, __ = PaymentEventType.objects.get_or_create(
-            name="Adyen - {}".format(notification.event_code))
-
-        EventHandler().create_payment_event(
-            order=order,
-            event_type=event_type,
-            amount=Decimal(notification.value) / 100,
-            reference=notification.psp_reference)
+            EventHandler().create_payment_event(
+                order=order,
+                event_type=event_type,
+                amount=Decimal(notification.value) / 100,
+                reference=notification.psp_reference)
         return super(NotificationView, self).handle_notification(notification)
 
 
