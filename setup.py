@@ -7,5 +7,6 @@ setup(name='adyen',
       author='Markus Bertheau',
       author_email='mbertheau@gmail.com',
       long_description=open('README.md').read(),
-      packages=['adyen', 'django_adyen', 'oscar_adyen'],
+      packages=['adyen', 'django_adyen', 'django_adyen.templatetags',
+                'oscar_adyen'],
       install_requires=['pytz', 'zope.dottedname'])
