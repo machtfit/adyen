@@ -134,7 +134,7 @@ class NotificationView(django_views.NotificationView):
             event_type, __ = PaymentEventType.objects.get_or_create(
                 name="Adyen - {}".format(notification.event_code))
 
-            EventHandler().create_payment_event(
+            EventHandler().handle_payment_event(
                 order=order,
                 event_type=event_type,
                 amount=Decimal(notification.value) / 100,
