@@ -21,9 +21,6 @@ log = logging.getLogger(__name__)
 Source = get_model('payment', 'Source')
 SourceType = get_model('payment', 'SourceType')
 UnableToPlaceOrder = get_class('order.exceptions', 'UnableToPlaceOrder')
-EventHandler = get_class('order.processing', 'EventHandler')
-Order = get_model('order', 'Order')
-PaymentEventType = get_model('order', 'PaymentEventType')
 CheckoutFlow = get_class('checkout.flow', 'CheckoutFlow')
 
 
@@ -116,30 +113,3 @@ class PaymentResultView(CheckoutFlow, django_views.PaymentResultView):
 
 
 payment_result = PaymentResultView.as_view()
-
-
-class NotificationView(django_views.NotificationView):
-    def handle_notification(self, notification):
-        try:
-            order_number, payment_id \
-                = map(int, notification.merchant_reference.split('-'))
-            order = Order.objects.get(number=order_number)
-        except (Order.DoesNotExist, ValueError):
-            # Don't send accepted response to have the notification be sent
-            # again. This should really be handled on our side with a deferred
-            # task runner or something similar.
-            log.error("Couldn't find order for notification #{id} {s}"
-                      .format(id=notification.pk, s=notification))
-        else:
-            event_type, __ = PaymentEventType.objects.get_or_create(
-                name="Adyen - {}".format(notification.event_code))
-
-            EventHandler().handle_payment_event(
-                order=order,
-                event_type=event_type,
-                amount=Decimal(notification.value) / 100,
-                reference=notification.psp_reference)
-        return super(NotificationView, self).handle_notification(notification)
-
-
-notification = NotificationView.as_view()

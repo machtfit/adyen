@@ -97,9 +97,11 @@ class NotificationView(View):
         your configured URL doesn't accept nofitications.
 
         Ideally, in this method you just schedule a notification processing
-        task and do the actual processing in another process.
+        task and do the actual processing in another process. Or you pick up
+        and handle unhandled notifications regularly otherwise, then you don't
+        have to do anything here.
 
-        The same notification may arrive several times. Check
-        notification.is_duplicate() to detect that situation.
+        The same notification may arrive several times. notification.original
+        is the first notification record for duplicates.
         """
         return HttpResponse('[accepted]')

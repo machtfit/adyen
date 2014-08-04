@@ -145,7 +145,7 @@ class Result(models.Model):
 
 class NotificationManager(models.Manager):
     def persist(self, hosted_payment_notification):
-        return self.create(
+        notification = Notification(
             live=hosted_payment_notification.live,
             event_code=hosted_payment_notification.event_code,
             psp_reference=hosted_payment_notification.psp_reference,
@@ -162,9 +162,30 @@ class NotificationManager(models.Manager):
             currency=hosted_payment_notification.currency,
             additional_params=json
             .dumps(hosted_payment_notification.additional_params))
+        notification.original = notification.get_original()
+        notification.save()
+        return notification
+
+    def originals(self):
+        return self.get_queryset().filter(original__isnull=True)
 
 
 class Notification(models.Model):
+    AUTHORISATION = 'AUTHORISATION'
+    CANCELLATION = 'CANCELLATION'
+    REFUND = 'REFUND'
+    CANCEL_OR_REFUND = 'CANCEL_OR_REFUND'
+    CAPTURE = 'CAPTURE'
+    REFUNDED_REVERSED = 'REFUNDED_REVERSED'
+    CAPTURE_FAILED = 'CAPTURE_FAILED'
+    REFUND_FAILED = 'REFUND_FAILED'
+    REQUEST_FOR_INFORMATION = 'REQUEST_FOR_INFORMATION'
+    NOTIFICATION_OF_CHARGEBACK = 'NOTIFICATION_OF_CHARGEBACK'
+    ADVICE_OF_DEBIT = 'ADVICE_OF_DEBIT'
+    CHARGEBACK = 'CHARGEBACK'
+    CHARGEBACK_REVERSED = 'CHARGEBACK_REVERSED'
+    REPORT_AVAILABLE = 'REPORT_AVAILABLE'
+
     created_datetime = models.DateTimeField(auto_now_add=True)
 
     live = models.BooleanField()
@@ -186,14 +207,21 @@ class Notification(models.Model):
     currency = models.CharField(max_length=3, blank=True, null=True)
     additional_params = models.TextField(blank=True, null=True)
 
+    handled = models.BooleanField(default=False)
+    original = models.ForeignKey('self', blank=True, null=True)
+
     objects = NotificationManager()
 
     def __unicode__(self):
         return "{event_code} {psp_reference}".format(**self.__dict__)
 
-    def is_duplicate(self):
+    def get_original(self):
+        """
+        Return the first record of this notification if this is a duplicate,
+        self otherwise. For the first record of a notification, while it is
+        unsaved, return None.
+        """
         objects = self._meta.model.objects
         return (objects.filter(event_code=self.event_code,
-                               psp_reference=self.psp_reference,
-                               created_datetime__lt=self.created_datetime)
-                .exists())
+                               psp_reference=self.psp_reference)
+                .order_by('created_datetime').first())
