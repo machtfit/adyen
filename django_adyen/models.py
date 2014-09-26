@@ -59,7 +59,7 @@ class Payment(models.Model):
     documentation or other sources, max_length is specified.
     """
     created_datetime = models.DateTimeField(auto_now_add=True)
-    live = models.BooleanField()
+    live = models.BooleanField(default=None)
     merchant_reference = models.CharField(max_length=80)
     payment_amount = models.IntegerField()
     currency_code = models.CharField(max_length=3)
@@ -188,7 +188,7 @@ class Notification(models.Model):
 
     created_datetime = models.DateTimeField(auto_now_add=True)
 
-    live = models.BooleanField()
+    live = models.BooleanField(default=None)
     event_code = models.CharField(max_length=100)
     # no max length info found
     psp_reference = models.CharField(max_length=100)
@@ -198,7 +198,7 @@ class Notification(models.Model):
     # no max length information found
     merchant_account_code = models.CharField(max_length=128)
     event_date = models.DateTimeField()
-    success = models.BooleanField()
+    success = models.BooleanField(default=None)
     # see Payment.brand_code, which is the same
     payment_method = models.CharField(max_length=40, blank=True, null=True)
     operations = models.TextField()
