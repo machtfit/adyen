@@ -16,9 +16,10 @@ class OrderPlacementMixin(django_views.PaymentRequestMixin,
         ref = "{order_number}-{{payment_id}}".format(order_number=order_number)
         # TODO: use correct subunit fraction depending on the currency
         # http://en.wikipedia.org/wiki/List_of_circulating_currencies
-        response = self.initiate_payment(ref, int(total.incl_tax * 100),
-                                         total.currency)
-        raise RedirectRequired(response.url)
+        if total.incl_tax > 0:
+            response = self.initiate_payment(ref, int(total.incl_tax * 100),
+                                             total.currency)
+            raise RedirectRequired(response.url)
 
     def prepare_payment_request(self, payment):
         super(OrderPlacementMixin, self).prepare_payment_request(payment)
