@@ -235,22 +235,18 @@ ADYEN_BACKEND = 'mymodule.MyBackend'
 
 # Oscar
 
+Warning: this module works only with the
+[checkout-refactor](https://github.com/machtfit/django-oscar/tree/checkout-refactor)
+([PR](https://github.com/django-oscar/django-oscar/pull/1423)) branch of oscar.
+
 The `oscar_adyen` module integrates the payment process into the oscar
-checkout. To plug it in override the checkout app:
+checkout. To plug it in override the checkout app and add or modify the
+following files:
 
 ```python
-# apps/checkout/app.py
+# apps/checkout/mixins.py
 
-import oscar.apps.checkout.app as orig
-
-import oscar_adyen.views
-
-
-class CheckoutApplication(orig.CheckoutApplication):
-    payment_details_view = oscar_adyen.views.PaymentDetailsView
-
-
-application = CheckoutApplication()
+from oscar_adyen.mixins import OrderPlacementMixin
 ```
 
 ```python
