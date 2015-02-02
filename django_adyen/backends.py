@@ -28,8 +28,13 @@ class SimpleSettingsBackend(Backend):
                     payment_flow=payment_flow)
 
     def get_skin_by_code(self, skin_code):
-        if settings.ADYEN_SKIN_CODE != skin_code:
+        # coalesce the skin code to '' just as we do when we send it to adyen
+        # via GET
+        settings_skin_code = settings.ADYEN_SKIN_CODE or ''
+
+        if settings_skin_code != skin_code:
             raise UnknownSkinCode
+
         return self.get_skin()
 
     def get_notification_credentials(self):

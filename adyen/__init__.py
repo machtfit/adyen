@@ -38,7 +38,7 @@ class Skin(object):
     def __init__(self, merchant_account, code, key, is_live=False,
                  payment_flow='onepage'):
         self.merchant_account = merchant_account
-        self.code = code
+        self.code = code or ''
         self.key = key
         self.is_live = is_live
         self.payment_flow = payment_flow
@@ -132,6 +132,10 @@ class HostedPayment(object):
             if value:
                 params[key] = value
 
+        if any(map(lambda x: x is None, params.values())):
+            raise ValueError("The parameter(s) {} may not be None."
+                             .format(", ".join([k for k, v in params.items()
+                                                if v is None])))
         params = {key: str(value) for (key, value) in params.items()}
         params['merchantSig'] = self.get_setup_signature(params,
                                                          self._skin.key)
@@ -245,7 +249,7 @@ class HostedPaymentResult(object):
         unit tests.
         """
         url = urlparse(url)
-        query = parse_qs(url.query)
+        query = parse_qs(url.query, keep_blank_values=True)
         params = {
             'authResult': 'AUTHORISED',
             'pspReference': 'mockreference',
