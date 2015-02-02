@@ -317,6 +317,11 @@ class HostedPaymentNotification(object):
 
 
 def _get_signature(keys, params, secret):
+    if not secret:
+        # the implementation needs a not None key, but for mock testing an
+        # empty key is sufficient, so treat None as ''.
+        secret = ''.encode('utf-8')
+
     plaintext = "".join(map(lambda v: '' if v is None else v,
                             (params.get(key, '') for key in keys)))
     hm = hmac.new(secret, plaintext, hashlib.sha1)
