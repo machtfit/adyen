@@ -19,29 +19,27 @@ log = logging.getLogger(__name__)
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
-class UnknownSkinCode(Exception):
+class UnknownSkinCode(StandardError):
     pass
 
 
 class Backend(object):
-    def get_skin(self, *args, **kwargs):
-        raise NotImplementedError
+    merchant_account = None
+    skin_code = None
+    skin_secret = None
+    is_live = False
+    payment_flow = 'onepage'
 
-    def get_skin_by_code(self, skin_code):
-        raise NotImplementedError
-
-    def get_notification_credentials(self):
-        raise NotImplementedError
-
-
-class Skin(object):
-    def __init__(self, merchant_account, code, key, is_live=False,
-                 payment_flow='onepage'):
+    def __init__(self, merchant_account, skin_code, skin_secret):
         self.merchant_account = merchant_account
-        self.code = code or ''
-        self.key = key
-        self.is_live = is_live
-        self.payment_flow = payment_flow
+        self.skin_code = skin_code
+        self.skin_secret = skin_secret
+
+    def get_skin_secret(self, skin_code):
+        if skin_code != self.skin_code:
+            raise UnknownSkinCode
+
+        return self.skin_secret
 
 
 class BadSignatureError(Exception):
@@ -61,9 +59,9 @@ class HostedPayment(object):
     fields. If a field is optional, has no value but is included in the
     signature calculation, it is never None. Instead it is the empty string.
     """
-    def __init__(self, skin, merchant_reference, payment_amount,
-                 currency_code, **kwargs):
-        self._skin = skin
+    def __init__(self, backend, merchant_reference, payment_amount,
+                 currency_code, is_live=False, **kwargs):
+        self.backend = backend
         self.merchant_reference = merchant_reference
         self.payment_amount = payment_amount
         self.currency_code = currency_code
@@ -90,15 +88,15 @@ class HostedPayment(object):
 
     @property
     def skin_code(self):
-        return self._skin.code
+        return self.backend.skin_code
 
     @property
     def is_live(self):
-        return self._skin.is_live
+        return self.backend.is_live
 
     @property
     def merchant_account(self):
-        return self._skin.merchant_account
+        return self.backend.merchant_account
 
     def get_redirect_url(self):
         params = {
@@ -137,14 +135,14 @@ class HostedPayment(object):
                              .format(", ".join([k for k, v in params.items()
                                                 if v is None])))
         params = {key: str(value) for (key, value) in params.items()}
-        params['merchantSig'] = self.get_setup_signature(params,
-                                                         self._skin.key)
+        params['merchantSig'] = self.get_setup_signature(
+            params, self.backend.get_skin_secret(self.backend.skin_code))
         live_or_test = 'test'
-        if self._skin.is_live:
+        if self.is_live:
             live_or_test = 'live'
 
         single_or_multi = 'select'
-        if self._skin.payment_flow == 'onepage':
+        if self.backend.payment_flow == 'onepage':
             single_or_multi = 'pay'
 
         return ('https://{live_or_test}.adyen.com/'
@@ -193,6 +191,9 @@ class HostedPayment(object):
 
     @staticmethod
     def _encode_order_data(value):
+        if not value:
+            return None
+
         out = StringIO.StringIO()
         with gzip.GzipFile(fileobj=out, mode="w") as f:
             f.write(value)
@@ -219,8 +220,8 @@ class HostedPaymentResult(object):
         log.debug('Received result:')
         log.debug(params)
 
-        skin = backend.get_skin_by_code(params['skinCode'])
-        if (self._get_result_signature(params, skin.key)
+        skin_secret = backend.get_skin_secret(params['skinCode'])
+        if (_get_result_signature(params, skin_secret)
                 != params['merchantSig']):
             raise BadSignatureError
 
@@ -231,16 +232,6 @@ class HostedPaymentResult(object):
         self.payment_method = params.get('paymentMethod')
         self.shopper_locale = params['shopperLocale']
         self.merchant_return_data = params.get('merchantReturnData')
-
-    @staticmethod
-    def _get_result_signature(params, secret):
-        """
-        Calculate the payment result signature in base64
-        """
-        keys = ['authResult', 'pspReference', 'merchantReference', 'skinCode',
-                'merchantReturnData']
-
-        return _get_signature(keys, params, secret)
 
     @classmethod
     def mock(cls, backend, url):
@@ -259,8 +250,8 @@ class HostedPaymentResult(object):
             'shopperLocale': query.get('shopperLocale', '')[0],
             'merchantReturnData': query.get('merchantReturnData', '')[0]
         }
-        skin = backend.get_skin_by_code(query['skinCode'][0])
-        params['merchantSig'] = cls._get_result_signature(params, skin.key)
+        skin_secret = backend.get_skin_secret(query['skinCode'][0])
+        params['merchantSig'] = _get_result_signature(params, skin_secret)
         return "{}?{}".format(query['resURL'][0], urlencode(params))
 
 
@@ -314,6 +305,16 @@ class HostedPaymentNotification(object):
             return False
         else:
             raise ValueError
+
+
+def _get_result_signature(params, secret):
+    """
+    Calculate the payment result signature in base64
+    """
+    keys = ['authResult', 'pspReference', 'merchantReference', 'skinCode',
+            'merchantReturnData']
+
+    return _get_signature(keys, params, secret)
 
 
 def _get_signature(keys, params, secret):

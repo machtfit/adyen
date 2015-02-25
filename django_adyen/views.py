@@ -7,41 +7,25 @@ from functools import wraps
 import logging
 
 from django.http import HttpResponse, HttpResponseRedirect
-from django.core.urlresolvers import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from .backends import get_backend
-from .models import Payment, Result, Notification
 
-from adyen import HostedPayment, HostedPaymentResult, HostedPaymentNotification
+from . import api as django_adyen_api
 
 log = logging.getLogger(__name__)
 
 
 class PaymentRequestMixin(object):
-    def initiate_payment(self, reference, total_in_minor_units, currency_code):
-        backend = get_backend()
-        skin = backend.get_skin()
-        payment = HostedPayment(skin, reference, total_in_minor_units,
-                                currency_code)
-        self.prepare_payment_request(payment)
-        if payment.res_url is None:
-            payment.res_url = self.request.build_absolute_uri(
-                reverse('django-adyen:payment-result'))
-        Payment.objects.persist(payment)
-        return HttpResponseRedirect(payment.get_redirect_url())
-
-    def prepare_payment_request(self, payment):
-        backend = get_backend()
-        for name, value in backend.get_payment_params().items():
-            setattr(payment, name, value)
+    def pay(self, payment):
+        url = django_adyen_api.pay(payment, self.request.build_absolute_uri)
+        return HttpResponseRedirect(url)
 
 
 class PaymentResultView(View):
     def get(self, request):
-        payment_result = HostedPaymentResult(request.GET, get_backend())
-        Result.objects.persist(payment_result)
+        payment_result = django_adyen_api.get_payment_result(request.GET)
         return self.handle_payment_result(payment_result)
 
     def handle_payment_result(self, payment_result):
@@ -86,8 +70,8 @@ class NotificationView(View):
 
     @basic_auth
     def post(self, request):
-        notification = HostedPaymentNotification(request.POST)
-        notification = Notification.objects.persist(notification)
+        notification = django_adyen_api.get_payment_notification(
+            request.POST)
         return self.handle_notification(notification)
 
     def handle_notification(self, notification):

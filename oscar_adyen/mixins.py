@@ -2,26 +2,27 @@
 
 from __future__ import unicode_literals
 
-from django.core.urlresolvers import reverse
-
-import django_adyen.views as django_views
+from . import api as oscar_adyen_api
 
 import oscar.apps.checkout.mixins as orig
 from oscar.apps.payment.exceptions import RedirectRequired
 
 
-class OrderPlacementMixin(django_views.PaymentRequestMixin,
-                          orig.OrderPlacementMixin):
-    def handle_payment(self, order_number, total, **kwargs):
-        ref = "{order_number}-{{payment_id}}".format(order_number=order_number)
+class OrderPlacementMixin(orig.OrderPlacementMixin):
+    def get_adyen_payment(self, order_number, total):
         # TODO: use correct subunit fraction depending on the currency
         # http://en.wikipedia.org/wiki/List_of_circulating_currencies
-        if total.incl_tax > 0:
-            response = self.initiate_payment(ref, int(total.incl_tax * 100),
-                                             total.currency)
-            raise RedirectRequired(response.url)
+        return oscar_adyen_api.create_payment(order_number,
+                                              int(total.incl_tax * 100),
+                                              total.currency)
 
-    def prepare_payment_request(self, payment):
-        super(OrderPlacementMixin, self).prepare_payment_request(payment)
-        payment.res_url = self.request.build_absolute_uri(
-            reverse('oscar-adyen:payment-result'))
+    def handle_payment(self, basket_id, order_number, total, **kwargs):
+        payment = self.get_adyen_payment(order_number, total)
+
+        if not payment:
+            # no payment necessary
+            return
+
+        raise RedirectRequired(oscar_adyen_api.pay(
+            payment, basket_id,
+            build_absolute_uri=self.request.build_absolute_uri))

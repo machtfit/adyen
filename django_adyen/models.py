@@ -33,7 +33,7 @@ class PaymentManager(models.Manager):
             res_url=hosted_payment.res_url)
 
         ref = hosted_payment.merchant_reference.format(**{'payment_id':
-                                                          payment.id})
+                                                          payment.pk})
         hosted_payment.merchant_reference = ref
         payment.merchant_reference = ref
         payment.save()
@@ -123,10 +123,10 @@ class Result(models.Model):
     """
     created_datetime = models.DateTimeField(auto_now_add=True)
 
-    # We can't tell by the payment result whether it is from the live or test
+    # We can't tell from the payment result whether it is from the live or test
     # system. We try to find a matching payment to determine live or test.
-    # However if we can't find the payment, instead of not persisting the
-    # result, we store None for this field.
+    # However if we can't find such a payment, we still persist this payment
+    # result, but store None for this field.
     live = models.NullBooleanField()
 
     auth_result = models.CharField(max_length=10)
@@ -214,6 +214,22 @@ class Notification(models.Model):
 
     def __unicode__(self):
         return "{event_code} {psp_reference}".format(**self.__dict__)
+
+    @property
+    def order_number(self):
+        return self.merchant_reference.split('-')[0]
+
+    @property
+    def payment(self):
+        try:
+            payment_id = int(self.merchant_reference.split('-')[1])
+        except ValueError:
+            raise ValueError("merchant_reference '{}' of notification '{}'"
+                             " doesn't have format"
+                             " ORDER_NUMBER-PAYMENT_ID."
+                             .format(self.merchant_reference, self))
+
+        return Payment.objects.get(pk=payment_id)
 
     def get_original(self):
         """

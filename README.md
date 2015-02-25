@@ -16,94 +16,98 @@ Manual](https://www.adyen.com/dam/documentation/manuals/IntegrationManual.pdf).
 
 # Python
 
-The `adyen` package contains the convenience classes `HostedPayment`, `Skin`,
-`HostedPaymentResult` and `HostedPaymentNotification`.
+The adyen module provides a simple Python API in the `api` submodule.
 
-## Skin
+## Quick start
 
-A `Skin` holds all payment session configuration data that does not strictly
-depend on the actual product or service that is being paid for. A `Skin`
-instance is passed to a `HostedPayment` to complete the payment session data.
+```python
+>>> from adyen import api, Backend
+>>> backend = Backend(merchant_account='account', skin_code='abc123',
+...                   skin_secret=b'secret')
+>>> payment = api.create_payment(backend, merchant_reference='1', amount=4599,
+...                              currency='EUR')
+>>> type(payment)
+<class 'adyen.HostedPayment'>
+>>> payment.res_url = 'https://my-domain.com/payment-result/order-123/'
+>>> url = api.pay(payment)
+>>> url
+u'https://test.adyen.com/hpp/pay.shtml?sessionValidity=2015-02-15T14%3A45%3A10%2B00%3A00&merchantReference=1&currencyCode=EUR&paymentAmount=4599&shipBeforeDate=2015-02-17&merchantAccount=account&resURL=https%3A%2F%2Fmy-domain.com%2Fpayment-result%2Forder-123%2F&merchantSig=dRL230J0a3Um9W6YTnBtVYHtFf0%3D&skinCode=abc123'
+```
+
+Redirect the user to that URL. When they finished the payment, they will be
+redirected to `res_url` with a number of query parameters.
+
+We'll mock that part for demonstration purposes:
+
+```python
+>>> result_params = api.mock_payment_result_params(backend, url)
+>>> result_params
+{u'merchantReference': u'1', u'merchantReturnData': u'',\
+ u'pspReference': u'mockreference',\
+ u'merchantSig': 'nnOlck0P2obLtH/F/UXce3MG750=',\
+ u'authResult': u'AUTHORISED', u'skinCode': u'abc123', u'shopperLocale': u'',\
+ u'paymentMethod': u'visa'}
+```
+
+Pass the query parameters to the api to get a payment result:
+
+```python
+>>> result = api.get_payment_result(backend, result_params)
+>>> type(result)
+<class 'adyen.HostedPaymentResult'>
+>>> result.auth_result
+u'AUTHORISED'
+>>> result.psp_reference
+u'mockreference'
+```
+
+Refer to the Adyen Integration Manual (Section 2.4 "Payment Completion" as of
+version 1.80) for the meaning of the various attributes of the payment result.
 
 ## HostedPayment
 
 An `HostedPayment` object holds all payment session data, encodes and signs it
-properly to submit to Adyen. In addition to a `Skin` it takes the merchant
-reference, the payment amount and the currency code. All other session data can
-be modified by setting the corresponding properties of the `HostedPayment`
-object.
-
-```python
-from adyen import Skin, HostedPayment
-
-merchant_account = 'MyMerchantAccount'
-skin_code = 'Ege3CEv4'
-key = '123'
-
-skin = Skin(merchant_account, skin_code, key, is_live=False)
-
-merchant_reference = 'Order 123 {payment_id}'
-payment_amount = 1199  # 11.99 EUR
-currency_code = 'EUR'
-payment = HostedPayment(skin, merchant_reference, payment_amount,
-                        currency_code)
-
-redirect_to = payment.get_redirect_url()
-```
-
-The merchant reference can contain the string `{payment_id}`, which will
-replaced with the id of the `django_adyen.models.Payment` object.
+properly to submit to Adyen. Many payment parameters can be modified by setting
+the corresponding properties of the `HostedPayment` object you get from
+`create_payment()` before passing it to `pay()`.
 
 For the session validity and the ship before date you can pass a datetime
 object respectively a date object or a timedelta object. If you pass a
 timedelta object, both values will be calculated from now respectively today.
 
 ```python
-from datetime import date, datetime, timedelta
-
-print(date.today())
-# 2014-04-29
-payment.ship_before_date = timedelta(days=4)
-print(payment.ship_before_date)
-# 2014-05-03
-
-print(datetime.utcnow())
-# 2014-04-29 15:56:36.601674
-payment.session_validity = timedelta(days=2)
-print(payment.session_validity)
-# 2014-05-01T15:56:50+00:00
-
-redirect_to = payment.get_redirect_url()
+>>> from datetime import date, datetime, timedelta
+>>> print(date.today())
+2015-02-18
+>>> payment.ship_before_date = timedelta(days=4)
+>>> print(payment.ship_before_date)
+2015-02-22
+>>> print(datetime.utcnow())
+2015-02-18 16:47:59.638420
+>>> payment.session_validity = timedelta(days=2)
+>>> print(payment.session_validity)
+2015-02-20T16:48:08+00:00
 ```
 
 Currently there is no explicit support for submitting the payment from a POST
-form. However the code for that should be very short and straighforward. If you
-implement that please consider submitting a pull request.
+form. However the code for that should be very short and straightforward. If
+you implement that please consider submitting a pull request.
 
 ## Backend
 
-A `Backend` allows other parts of the code to retrieve a skin configuration by
-its code. This is needed to check the signature of an incoming payment result.
+A `Backend` provides configuration information for the payment that does not
+strictly depend on the actual product or service that is being paid for.
 
-Here's an example backend that works with just one static `Skin`, the `Skin`
-from above:
+Here is a sample static backend:
 
 ```python
-from adyen import Backend, UnknownSkinCode
+from adyen import Backend
 
-
-class MyBackend(Backend):
-    def get_skin(self):
-        return skin
-
-    def get_skin_by_code(self, skin_code):
-        if skin.code != skin_code:
-            raise UnknownSkinCode
-        return skin
-
-
-backend = MyBackend()
+backend = Backend(merchant_account='account', skin_code='abc123',
+                  skin_secret=b'secret')
 ```
+
+Note that `skin_code` has to be a binary string.
 
 ## HostedPaymentResult
 
@@ -140,11 +144,20 @@ print("{.payment_method} payment event {.event_code} result: {.success}"
 
 # Django
 
-On top of the functionality in the `adyen` module, the `django_adyen` module
-provides a view mixin for the payment request as well as views for the payment
-result and for notifications. All three persist payment information in the
-three models `Payment`, `Result` and `Notification` in `django_adyen.models`.
-It also includes a backend implementation that uses the Django settings.
+The `django_adyen` module contains an API that extends the pure Python API with
+
+  1. Persisting payment requests, payment results and payment notifications
+     using the Django models `Payment`, `Result` and `Notification` in
+    `django_adyen.models`.
+  2. a backend that uses the Django settings
+
+`create_payment()` takes an order number instead of a merchant reference as the
+first argument. The merchant reference is set to `ORDER_NUMBER-PAYMENT_ID`,
+where `PAYMENT_ID` is the primary key value of the `Payment` model instance.
+
+`pay()` takes a function to build an absolute URI from only the path part. If
+you have a `Request` handy, pass `request.build_absolute_uri`.
+
 
 ```python
 # settings.py
@@ -179,18 +192,17 @@ urlpatterns = [
 ```python
 # views.py
 
-import django_adyen.views
+from django_adyen import views, api
 
 
-class PaymentView(django_adyen.views.PaymentRequestMixin, View):
+class PaymentView(views.PaymentRequestMixin, View):
     def post(self, request, *args, **kwargs):
-        # call this method somewhere
-        # It returns a HttpResponseRedirect to Adyen
-        return self.initiate_payment(reference, total_in_minor_units,
-                                     currency_code)
+        payment = api.create_payment(order_number, total_in_minor_units,
+                                     currency)
+        return self.pay(payment)
 
 
-class PaymentResultView(django_adyen.views.PaymentResultView):
+class PaymentResultView(views.PaymentResultView):
     def handle_payment_result(self, payment_result):
         if payment_result.auth_result == 'ERROR':
             messages.warning(self.request, _('Payment failed'))
@@ -208,7 +220,7 @@ class PaymentResultView(django_adyen.views.PaymentResultView):
             messages.info(self.request, _('Payment pending'))
             # handle
 
-        if payment_result.auth_result == 'REFUSED':
+        if payment_result.auth_result == 'AUTHORISED':
             messages.success(self.request, _('Payment authorised'))
             # handle
 
@@ -233,11 +245,13 @@ this:
 ADYEN_BACKEND = 'mymodule.MyBackend'
 ```
 
+`ADYEN_BACKEND` can be any callable that returns a `Backend` instance.
+
 # Oscar
 
 Warning: this module works only with the
-[checkout-refactor](https://github.com/machtfit/django-oscar/tree/checkout-refactor)
-([PR](https://github.com/django-oscar/django-oscar/pull/1423)) branch of oscar.
+[clerk](https://github.com/machtfit/django-oscar/tree/clerk)
+([PR](https://github.com/django-oscar/django-oscar/pull/1678)) branch of oscar.
 
 The `oscar_adyen` module integrates the payment process into the oscar
 checkout. To plug it in override the checkout app and add or modify the
@@ -274,5 +288,5 @@ urlpatterns = [
 
 The oscar implementation is currently limited to placing an order when the
 payment result is AUTHORISED or PENDING. Any further payment status changes
-received through notifications are recorded as a payment event but not
-otherwise handled.
+received through notifications are recorded as a payment event for the
+corresponding order but not otherwise handled.

@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 from zope.dottedname.resolve import resolve
 
-from adyen import Skin, Backend, UnknownSkinCode
+from adyen import Backend
 
 from django.conf import settings
 
@@ -18,34 +18,14 @@ def get_backend():
 
 
 class SimpleSettingsBackend(Backend):
-    def get_skin(self):
-        is_live = getattr(settings, 'ADYEN_IS_LIVE', False)
-        payment_flow = getattr(settings, 'ADYEN_PAYMENT_FLOW', 'onepage')
-        return Skin(settings.ADYEN_MERCHANT_ACCOUNT,
-                    settings.ADYEN_SKIN_CODE,
-                    settings.ADYEN_SKIN_SECRET,
-                    is_live=is_live,
-                    payment_flow=payment_flow)
-
-    def get_skin_by_code(self, skin_code):
-        # coalesce the skin code to '' just as we do when we send it to adyen
-        # via GET
-        settings_skin_code = settings.ADYEN_SKIN_CODE or ''
-
-        if settings_skin_code != skin_code:
-            raise UnknownSkinCode
-
-        return self.get_skin()
+    def __init__(self):
+        super(SimpleSettingsBackend, self).__init__(
+            settings.ADYEN_MERCHANT_ACCOUNT,
+            settings.ADYEN_SKIN_CODE,
+            settings.ADYEN_SKIN_SECRET)
+        self.is_live = getattr(settings, 'ADYEN_IS_LIVE', False)
+        self.payment_flow = getattr(settings, 'ADYEN_PAYMENT_FLOW', 'onepage')
 
     def get_notification_credentials(self):
         return (settings.ADYEN_NOTIFICATION_USER,
                 settings.ADYEN_NOTIFICATION_PASSWORD)
-
-    def get_payment_params(self):
-        params = {}
-        if hasattr(settings, 'ADYEN_COUNTRY_CODE'):
-            params['country_code'] = settings.ADYEN_COUNTRY_CODE
-        if hasattr(settings, 'ADYEN_SHOPPER_LOCALE'):
-            params['shopper_locale'] = settings.ADYEN_SHOPPER_LOCALE
-
-        return params
