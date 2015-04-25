@@ -18,6 +18,9 @@ def create_payment(order_number, *args, **kwargs):
     payment = adyen_api.create_payment(get_backend(), merchant_reference,
                                        *args, **kwargs)
 
+    if not payment:
+        return
+
     if hasattr(settings, 'ADYEN_COUNTRY_CODE'):
         payment.country_code = settings.ADYEN_COUNTRY_CODE
     if hasattr(settings, 'ADYEN_SHOPPER_LOCALE'):
