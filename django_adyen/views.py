@@ -13,13 +13,17 @@ from django.views.generic import View
 from .backends import get_backend
 
 from . import api as django_adyen_api
+from adyen import is_old_browser
 
 log = logging.getLogger(__name__)
 
 
 class PaymentRequestMixin(object):
     def pay(self, payment):
-        url = django_adyen_api.pay(payment, self.request.build_absolute_uri)
+        user_agent = self.request.META.get('HTTP_USER_AGENT')
+        url = django_adyen_api.pay(
+            payment, self.request.build_absolute_uri,
+            force_multi=is_old_browser(user_agent))
         return HttpResponseRedirect(url)
 
 

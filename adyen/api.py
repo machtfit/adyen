@@ -53,8 +53,8 @@ def create_payment(backend, merchant_reference, amount, currency):
     return payment
 
 
-def pay(payment):
-    return payment.get_redirect_url()
+def pay(payment, force_multi=False):
+    return payment.get_redirect_url(force_multi)
 
 
 def mock_payment_result_params(backend, url):

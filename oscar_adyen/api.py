@@ -42,7 +42,7 @@ class PaymentFailed(StandardError):
 create_payment = django_adyen_api.create_payment
 
 
-def pay(payment, basket_id, build_absolute_uri=None):
+def pay(payment, basket_id, build_absolute_uri=None, force_multi=False):
     if not payment.res_url:
         if not build_absolute_uri:
             raise StandardError("Pass build_absolute_uri if you don't set "
@@ -52,7 +52,7 @@ def pay(payment, basket_id, build_absolute_uri=None):
             reverse('oscar-adyen:payment-result',
                     kwargs={'basket_id': basket_id}))
 
-    return django_adyen_api.pay(payment)
+    return django_adyen_api.pay(payment, force_multi=force_multi)
 
 mock_payment_result_params = django_adyen_api.mock_payment_result_params
 

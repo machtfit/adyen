@@ -98,7 +98,7 @@ class HostedPayment(object):
     def merchant_account(self):
         return self.backend.merchant_account
 
-    def get_redirect_url(self):
+    def get_redirect_url(self, force_multi=False):
         params = {
             'merchantReference': self.merchant_reference,
             'paymentAmount': self.payment_amount,
@@ -142,7 +142,7 @@ class HostedPayment(object):
             live_or_test = 'live'
 
         single_or_multi = 'select'
-        if self.backend.payment_flow == 'onepage':
+        if self.backend.payment_flow == 'onepage' and not force_multi:
             single_or_multi = 'pay'
 
         return ('https://{live_or_test}.adyen.com/'
@@ -338,3 +338,10 @@ def is_naive(value):
     """
     # copied from Django
     return value.tzinfo is None or value.tzinfo.utcoffset(value) is None
+
+
+def is_old_browser(user_agent):
+    if not user_agent:
+        return False
+
+    return "MSIE 8" in user_agent or "MSIE 9" in user_agent

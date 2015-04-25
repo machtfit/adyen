@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 from . import api as oscar_adyen_api
+from adyen import is_old_browser
 
 import oscar.apps.checkout.mixins as orig
 from oscar.apps.payment.exceptions import RedirectRequired
@@ -23,6 +24,8 @@ class OrderPlacementMixin(orig.OrderPlacementMixin):
             # no payment necessary
             return
 
+        user_agent = self.request.META.get('HTTP_USER_AGENT')
         raise RedirectRequired(oscar_adyen_api.pay(
             payment, basket_id,
-            build_absolute_uri=self.request.build_absolute_uri))
+            build_absolute_uri=self.request.build_absolute_uri,
+            force_multi=is_old_browser(user_agent)))

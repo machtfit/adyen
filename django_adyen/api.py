@@ -29,7 +29,7 @@ def create_payment(order_number, *args, **kwargs):
     return payment
 
 
-def pay(payment, build_absolute_uri=None):
+def pay(payment, build_absolute_uri=None, force_multi=False):
     if not payment.res_url:
         if not build_absolute_uri:
             raise StandardError("Pass build_absolute_uri if you don't set "
@@ -40,7 +40,7 @@ def pay(payment, build_absolute_uri=None):
 
     Payment.objects.persist(payment)
 
-    return adyen_api.pay(payment)
+    return adyen_api.pay(payment, force_multi=force_multi)
 
 
 def mock_payment_result_params(*args, **kwargs):
