@@ -3,7 +3,7 @@
 With this package you can implement [Adyen Hosted Payment
 Pages](https://www.adyen.com/home/technology/integration#HPP) in Python. It
 also has ready-to-use apps for [Django](https://www.djangoproject.com/) and for
-[Oscar](http://tangentlabs.github.io/django-oscar/).
+[Oscar](http://oscarcommerce.com/).
 
 Go to [Django support](#django).
 
