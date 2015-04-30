@@ -12,3 +12,5 @@ urlpatterns = [
 ] + urlpatterns
 
 urls = urlpatterns, 'oscar-adyen', 'oscar-adyen'
+
+default_app_config = ('oscar_adyen.apps.OscarAdyenConfig')
