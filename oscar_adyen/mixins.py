@@ -22,7 +22,7 @@ class OrderPlacementMixin(orig.OrderPlacementMixin):
 
         if not payment:
             # no payment necessary
-            return
+            return [], []
 
         user_agent = self.request.META.get('HTTP_USER_AGENT')
         raise RedirectRequired(oscar_adyen_api.pay(
