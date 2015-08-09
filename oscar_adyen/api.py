@@ -106,9 +106,30 @@ def handle_notification(notification):
     try:
         order = Order.objects.get(number=notification.order_number)
     except Order.DoesNotExist:
-        log.error("Couldn't find order '{order}' for notification #{id} {s}"
-                  .format(order=notification.order_number, id=notification.pk,
-                          s=notification))
+        # An order is created only when the final redirect through the user's
+        # browser has arrived and if the payment was successful. We still get
+        # notifications when the payment wasn't successful.
+        if notification.event_code == 'AUTHORISATION' \
+                and notification.success is False:
+            log.info("Authorisation for payment with merchant reference"
+                     " '{reference}' failed with reason '{reason}' {s}"
+                     .format(reference=notification.merchant_reference,
+                             reason=notification.reason,
+                             s=notification))
+            notification.handled = True
+            notification.save()
+            return notification
+        else:
+            # We also occasionally get the notification for a successful
+            # payment before the final redirect request managed to create the
+            # order. So far we ignore that and treat the condition like any
+            # other error. With any luck, the next time outstanding unhandled
+            # notifications are processed, the order will have been created.
+            log.error("Couldn't find order '{order}' for notification #{id} "
+                      "{s}"
+                      .format(order=notification.order_number,
+                              id=notification.pk,
+                              s=notification))
         return
 
     event_type, __ = PaymentEventType.objects.get_or_create(
