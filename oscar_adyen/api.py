@@ -106,9 +106,22 @@ def handle_notification(notification):
     try:
         order = Order.objects.get(number=notification.order_number)
     except Order.DoesNotExist:
-        log.error("Couldn't find order '{order}' for notification #{id} {s}"
-                  .format(order=notification.order_number, id=notification.pk,
-                          s=notification))
+        if notification.event_code == 'AUTHORISATION' \
+                and notification.success is False:
+            log.info("Payment with merchant reference '{reference}' "
+                     "failed with reason '{reason}' {s}"
+                     .format(reference=notification.merchant_reference,
+                             reason=notification.reason,
+                             s=notification))
+            notification.handled = True
+            notification.save()
+            return notification
+        else:
+            log.error("Couldn't find order '{order}' for notification #{id} "
+                      "{s}"
+                      .format(order=notification.order_number,
+                              id=notification.pk,
+                              s=notification))
         return
 
     event_type, __ = PaymentEventType.objects.get_or_create(
