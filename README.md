@@ -5,14 +5,22 @@ Pages](https://www.adyen.com/home/technology/integration#HPP) in Python. It
 also has ready-to-use apps for [Django](https://www.djangoproject.com/) and for
 [Oscar](http://oscarcommerce.com/).
 
+# Production readiness
+
+As of 2015-08-11 this code is in production use. However, do have a look at the
+[open issues](../../issues).
+
+# Usage
+
+You need to read both the
+[Adyen Merchant Manual](https://www.adyen.com/dam/documentation/manuals/MerchantManual.pdf)
+and the
+[Hosted Payment Pages Integration Manual](https://www.adyen.com/dam/documentation/manuals/IntegrationManual.pdf)
+to successfully implement adyen.
+
 Go to [Django support](#django).
 
 Go to [Oscar support](#oscar).
-
-This README assumes that you are familiar with the [Adyen Merchant
-Manual](https://www.adyen.com/dam/documentation/manuals/MerchantManual.pdf) and
-the [Hosted Payment Pages Integration
-Manual](https://www.adyen.com/dam/documentation/manuals/IntegrationManual.pdf).
 
 # Python
 
