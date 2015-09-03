@@ -94,6 +94,9 @@ class Payment(models.Model):
 
     objects = PaymentManager()
 
+    class Meta:
+        app_label = 'django_adyen'
+
 
 class ResultManager(models.Manager):
     def persist(self, hosted_payment_result):
@@ -141,6 +144,9 @@ class Result(models.Model):
                                             null=True)
 
     objects = ResultManager()
+
+    class Meta:
+        app_label = 'django_adyen'
 
 
 class NotificationManager(models.Manager):
@@ -211,6 +217,9 @@ class Notification(models.Model):
     original = models.ForeignKey('self', blank=True, null=True)
 
     objects = NotificationManager()
+
+    class Meta:
+        app_label = 'django_adyen'
 
     def __unicode__(self):
         return "{event_code} {psp_reference}".format(**self.__dict__)
