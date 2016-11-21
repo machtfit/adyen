@@ -192,7 +192,7 @@ import django_adyen
 
 urlpatterns = [
 # ...
-    url(r'^somewhere/', include(django_adyen.urls))
+    url(r'^somewhere/', include(django_adyen.app.urls))
 # ...
 ]
 ```
