@@ -2,8 +2,7 @@
 
 With this package you can implement [Adyen Hosted Payment
 Pages](https://www.adyen.com/home/technology/integration#HPP) in Python. It
-also has ready-to-use apps for [Django](https://www.djangoproject.com/) and for
-[Oscar](http://oscarcommerce.com/).
+also has ready-to-use apps for [Django](https://www.djangoproject.com/).
 
 # Production readiness
 
@@ -19,8 +18,6 @@ and the
 to successfully implement adyen.
 
 Go to [Django support](#django).
-
-Go to [Oscar support](#oscar).
 
 # Python
 
@@ -254,47 +251,3 @@ ADYEN_BACKEND = 'mymodule.MyBackend'
 ```
 
 `ADYEN_BACKEND` can be any callable that returns a `Backend` instance.
-
-# Oscar
-
-Warning: this module works only with the
-[clerk](https://github.com/machtfit/django-oscar/tree/clerk)
-([PR](https://github.com/django-oscar/django-oscar/pull/1678)) branch of oscar.
-
-The `oscar_adyen` module integrates the payment process into the oscar
-checkout. To plug it in override the checkout app and add or modify the
-following files:
-
-```python
-# apps/checkout/mixins.py
-
-from oscar_adyen.mixins import OrderPlacementMixin
-```
-
-```python
-# settings.py
-
-# for the settings do the same as in the Django instructions
-
-# and add 'apps.checkout' to the argument list of get_core_apps
-
-# use reverse('oscar-adyen:payment-notification') as the notification URL
-# in the Adyen notification configuration
-```
-
-```python
-# urls.py
-
-import oscar_adyen
-
-urlpatterns = [
-# ...
-    url(r'^checkout/adyen/', include(oscar_adyen.urls))
-# ...
-]
-```
-
-The oscar implementation is currently limited to placing an order when the
-payment result is AUTHORISED or PENDING. Any further payment status changes
-received through notifications are recorded as a payment event for the
-corresponding order but not otherwise handled.
