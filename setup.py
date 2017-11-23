@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='adyen',
-      version='0.1.2',
+      version='0.1.3',
       description='Python library for the Adyen payment provider',
       license="MIT",
       author='Markus Bertheau',
