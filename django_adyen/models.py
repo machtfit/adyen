@@ -214,7 +214,8 @@ class Notification(models.Model):
     additional_params = models.TextField(blank=True, null=True)
 
     handled = models.BooleanField(default=False)
-    original = models.ForeignKey('self', blank=True, null=True)
+    original = models.ForeignKey(
+        'self', blank=True, null=True, on_delete=models.CASCADE)
 
     objects = NotificationManager()
 
