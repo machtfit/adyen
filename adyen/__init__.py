@@ -224,8 +224,7 @@ class HostedPaymentResult(object):
         log.debug(params)
 
         skin_secret = backend.get_skin_secret(params['skinCode'])
-        if (_get_result_signature(params, skin_secret)
-                != params['merchantSig']):
+        if (str(_get_result_signature(params, skin_secret)) != str(params['merchantSig'])):
             raise BadSignatureError
 
         self.auth_result = params['authResult']
@@ -327,7 +326,7 @@ def _get_signature(keys, params, secret):
         secret = ''.encode('utf-8')
 
     plaintext = "".join(map(lambda v: '' if v is None else v,
-                            (params.get(key, '') for key in keys)))
+                            (params.get(key, '') for key in keys))).encode('utf-8')
     hm = hmac.new(secret, plaintext, hashlib.sha1)
     return base64.encodestring(hm.digest()).strip()
 
