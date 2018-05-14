@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
-class UnknownSkinCode(StandardError):
+class UnknownSkinCode(Exception):
     pass
 
 

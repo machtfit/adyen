@@ -32,7 +32,7 @@ def create_payment(order_number, *args, **kwargs):
 def pay(payment, build_absolute_uri=None, force_multi=False):
     if not payment.res_url:
         if not build_absolute_uri:
-            raise StandardError("Pass build_absolute_uri if you don't set "
+            raise Exception("Pass build_absolute_uri if you don't set "
                                 "res_url on the payment yourself.")
 
         payment.res_url = build_absolute_uri(
