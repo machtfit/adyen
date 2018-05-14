@@ -9,8 +9,11 @@ import hmac
 import io
 import logging
 from datetime import date, datetime, timedelta
-from urllib import urlencode
-from urlparse import parse_qs, urlparse
+try:
+    from urllib.parse import parse_qs, urlencode, urlparse
+except ImportError:
+    from urllib import urlencode
+    from urlparse import urlparse, parse_qs
 
 import pytz
 

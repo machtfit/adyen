@@ -30,11 +30,13 @@ u'AUTHORISED'
 >>> result.psp_reference
 u'mockreference'
 """
-
 from __future__ import unicode_literals
 
-from urllib import urlencode
-from urlparse import parse_qs, urlparse
+try:
+    from urllib.parse import parse_qs, urlencode, urlparse
+except ImportError:
+    from urllib import urlencode
+    from urlparse import urlparse, parse_qs
 
 from adyen import (HostedPayment, HostedPaymentNotification,
                    HostedPaymentResult, _get_result_signature)
