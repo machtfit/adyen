@@ -2,11 +2,11 @@
 
 from __future__ import unicode_literals
 
+from django.conf import settings
+
 from zope.dottedname.resolve import resolve
 
 from adyen import Backend
-
-from django.conf import settings
 
 
 def get_backend():

@@ -3,14 +3,14 @@
 from __future__ import unicode_literals
 
 import base64
-from datetime import date, datetime, timedelta
 import gzip
 import hashlib
 import hmac
 import logging
 import StringIO
+from datetime import date, datetime, timedelta
 from urllib import urlencode
-from urlparse import urlparse, parse_qs
+from urlparse import parse_qs, urlparse
 
 import pytz
 

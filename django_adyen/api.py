@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 import adyen.api as adyen_api
 
 from .backends import get_backend
-from .models import Payment, Result, Notification
+from .models import Notification, Payment, Result
 
 
 def create_payment(order_number, *args, **kwargs):

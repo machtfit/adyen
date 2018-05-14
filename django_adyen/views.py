@@ -3,17 +3,17 @@
 from __future__ import unicode_literals
 
 import base64
-from functools import wraps
 import logging
+from functools import wraps
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
-from .backends import get_backend
+from adyen import is_old_browser
 
 from . import api as django_adyen_api
-from adyen import is_old_browser
+from .backends import get_backend
 
 log = logging.getLogger(__name__)
 

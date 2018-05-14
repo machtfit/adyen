@@ -2,7 +2,7 @@
 
 from django import template
 
-from django_adyen.models import Result, Notification
+from django_adyen.models import Notification, Result
 
 register = template.Library()
 
