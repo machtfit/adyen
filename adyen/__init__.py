@@ -6,8 +6,8 @@ import base64
 import gzip
 import hashlib
 import hmac
+import io
 import logging
-import StringIO
 from datetime import date, datetime, timedelta
 from urllib import urlencode
 from urlparse import parse_qs, urlparse
@@ -194,7 +194,7 @@ class HostedPayment(object):
         if not value:
             return None
 
-        out = StringIO.StringIO()
+        out = io.StringIO()
         with gzip.GzipFile(fileobj=out, mode="w") as f:
             f.write(value)
         return out.getvalue().encode('base64')
